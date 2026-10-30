@@ -55,9 +55,9 @@ async function upBank(fs){const mk=prompt('Nama mata kuliah untuk berkas ini:');
 function renB(id){const b=S.bank.find(x=>x.ID===id),n=prompt('Nama berkas baru:',b.NAMA_FILE);if(!n)return;b.NAMA_FILE=n;persist();renderBank();bg('bankEdit',{id,name:n})}
 function delB(id){if(!confirm('Hapus berkas ini?'))return;S.bank=S.bank.filter(x=>x.ID!==id);persist();renderBank();bg('bankDel',{id})}
 // ===== Data Jadwal
-const JC='SMT,KELAS,MATA_KULIAH,DOSEN_1,DOSEN_2,HARI,WAKTU,MATKUL_ARAB,DOSEN_ARAB,PRODI'.split(',');
+const JC='SMT,KELAS,MATA_KULIAH,DOSEN_1,DOSEN_2,HARI,WAKTU,MATKUL_ARAB,DOSEN_ARAB,PRODI,HARI_ARAB,WAKTU_ARAB'.split(',');
 function renderJadwal(){const q=($('j_q').value||'').toLowerCase(),seen={};
- $('j_t').innerHTML=S.jadwal.filter(j=>JSON.stringify(j).toLowerCase().includes(q)).map(j=>{const k=j.SMT+j.KELAS+j.MATA_KULIAH,d=seen[k]++;seen[k]=1;return`<tr><td>${esc(j.SMT)}<td><span class="tag">${esc(j.KELAS)}</span><td>${esc(j.MATA_KULIAH)}<td class="ar">${esc(j.MATKUL_ARAB)}<td>${esc(j.DOSEN_1)}<td>${esc(j.HARI)} ${esc(j.WAKTU)}<td><button onclick="delJ('${j.ID}')">Hapus</button>`}).join('')||'<tr><td colspan=7>Belum ada data.'}
+ $('j_t').innerHTML=S.jadwal.filter(j=>JSON.stringify(j).toLowerCase().includes(q)).map(j=>{const k=j.SMT+j.KELAS+j.MATA_KULIAH,d=seen[k]++;seen[k]=1;return`<tr><td>${esc(j.SMT)}<td><span class="tag">${esc(j.KELAS)}</span><td>${esc(j.MATA_KULIAH)}<td class="ar">${esc(j.MATKUL_ARAB)}<td>${esc(j.DOSEN_1)}<td>${esc(j.HARI)} ${esc(j.WAKTU)}${j.HARI_ARAB?`<br><span class="ar">${esc(j.HARI_ARAB)} ${esc(j.WAKTU_ARAB)}</span>`:''}<td><button onclick="delJ('${j.ID}')">Hapus</button>`}).join('')||'<tr><td colspan=7>Belum ada data.'}
 const saveJ=()=>{persist();renderAll();bg('saveJadwal',S.jadwal)};
 function parseCSV(t){const d=t.split('\n')[0].includes(';')?';':',',rows=[];let r=[],c='',q=0;for(const ch of t.replace(/\r/g,'')){if(ch=='"')q=!q;else if(ch==d&&!q){r.push(c);c=''}else if(ch=='\n'&&!q){r.push(c);rows.push(r);r=[];c=''}else c+=ch}r.push(c);rows.push(r);return rows.filter(x=>x.join('').trim())}
 const AL={MATKUL:'MATA_KULIAH',MATAKULIAH:'MATA_KULIAH',MATA_KULIAH_ID:'MATA_KULIAH',MATKUL_ID:'MATA_KULIAH',DOSEN:'DOSEN_1',DOSEN_UTAMA:'DOSEN_1',DOSEN_UTAMA_CETAK:'DOSEN_1',JAM:'WAKTU',HARI_JAM:'WAKTU',PROGRAM_STUDI:'PRODI',SEMESTER:'SMT'};
@@ -86,19 +86,20 @@ const uniq=a=>[...new Set(a.filter(Boolean))];
 function fillKelas(){const k=$('f_kelas');if(k.options.length)return;k.innerHTML=uniq(S.jadwal.map(j=>j.KELAS)).map(x=>`<option>${esc(x)}`).join('');fillMk()}
 function fillMk(){$('f_mk').innerHTML=S.jadwal.filter(j=>j.KELAS===$('f_kelas').value).map(j=>`<option value="${j.ID}">${esc(j.MATA_KULIAH)}`).join('');fillId()}
 function fillId(){const j=S.jadwal.find(x=>x.ID===$('f_mk').value);if(!j)return;const a=isAr(j.KELAS);
- $('f_dosen').value=a?(j.DOSEN_ARAB||j.DOSEN_1):j.DOSEN_1;$('f_prodi').value=j.PRODI||'';$('f_smt').value=j.SMT;$('f_hari').value=j.HARI;$('f_jam').value=j.WAKTU}
+ $('f_dosen').value=a?(j.DOSEN_ARAB||j.DOSEN_1):j.DOSEN_1;$('f_prodi').value=j.PRODI||'';$('f_smt').value=j.SMT;$('f_hari').value=a?(j.HARI_ARAB||j.HARI):j.HARI;$('f_jam').value=a?(j.WAKTU_ARAB||j.WAKTU):j.WAKTU}
+const arDur=s=>s.replace(/\d+/g,m=>m.replace(/\d/g,d=>'٠١٢٣٤٥٦٧٨٩'[d])).replace(/menit/i,'دقيقة');
 function paper(){const v=i=>esc($(i).value),j=S.jadwal.find(x=>x.ID===$('f_mk').value)||{},a=isAr(j.KELAS),mm=x=>x*3.78,off=mm(+S.set.OFFSET||45),mar=mm(+S.set.MARGIN||20),fs=$('f_fs').value+'pt',two=$('f_two').value;
  const mk=a?(j.MATKUL_ARAB||j.MATA_KULIAH):j.MATA_KULIAH,tt=$('f_jenis').value==='UTS'?'TENGAH':'AKHIR';
  const K=KOPS[(a?'AR':'ID')+'_'+$('f_jenis').value]||'',hd=K?'':`<div class="ih" style="margin-bottom:8px">SEKOLAH TINGGI ILMU SYARIAH AL WAFA BOGOR</div>`;
  const ttl=K?'':a?`<div class="ih ar">الاختبار ${tt==='AKHIR'?'لنهاية':'لنصف'} الفصل — ${v('f_ta')}</div>`:`<div class="ih">UJIAN ${tt} SEMESTER (${v('f_jenis')}) ${v('f_sem').toUpperCase()} T.A ${v('f_ta')}</div>`;
- const L=a?[['المادة',mk],['المدرس',v('f_dosen')],['المستوى',v('f_smt')],['اليوم',v('f_hari')+' '+v('f_tgl')],['الوقت',v('f_jam')+' ('+v('f_dur')+')'],['اسم الطالب','']]:[['Mata Kuliah',esc(mk)],['Dosen Pengampu',v('f_dosen')],['Prodi / Smt',v('f_prodi')+' / '+v('f_smt')],['Sifat',v('f_sifat')],['Hari/Tanggal',v('f_hari')+', '+v('f_tgl')],['Jam',v('f_jam')+' ('+v('f_dur')+')'],['Nama Mahasiswa','................']];
+ const L=a?[['المادة',mk],['المدرس',v('f_dosen')],['المستوى',v('f_smt')],['اليوم',v('f_hari')+' '+v('f_tgl')],['الوقت',v('f_jam')+' ('+arDur(v('f_dur'))+')'],['اسم الطالب','']]:[['Mata Kuliah',esc(mk)],['Dosen Pengampu',v('f_dosen')],['Prodi / Smt',v('f_prodi')+' / '+v('f_smt')],['Sifat',v('f_sifat')],['Hari/Tanggal',v('f_hari')+', '+v('f_tgl')],['Jam',v('f_jam')+' ('+v('f_dur')+')'],['Nama Mahasiswa','................']];
  const inner=`<div class="pi ${a?'ar':''}" style="padding:${two?(K?off*.71:mm(14)):off}px ${two?mm(10):mar}px 30px;font-size:${fs}">${hd}${ttl}<div class="idt">${L.map(x=>`<div><b>${x[0]}:</b> ${x[1]}</div>`).join('')}</div><div class="body">${v('f_soal')}</div></div>`;
  const bgs=K?`background-image:url(${K})`:'';
  return two?`<div class="pg l"><div class="hf" style="${bgs}">${inner}</div><div class="hf" style="${bgs}">${inner}</div></div>`:`<div class="pg" style="${bgs}">${inner}</div>`}
 function zoomAll(){document.querySelectorAll('.pv').forEach(p=>{const g=p.firstElementChild;if(!g)return;g.style.zoom=1;const z=(p.clientWidth-16)/g.offsetWidth;g.style.zoom=Math.min(z,1)})}
 function renderSoal(){if(!$('f_mk').value&&$('f_kelas').options.length)fillMk();$('pvs').innerHTML=paper();zoomAll()}
 // ===== Label Map
-function labelHtml(j){const a=isAr(j.KELAS),jn=$('l_jn').value;return a?`<div class="lb ar"><h4>نص الأسئلة</h4><div>المادة: ${esc(j.MATKUL_ARAB||j.MATA_KULIAH)}</div><div>المدرس: ${esc(j.DOSEN_ARAB||j.DOSEN_1)}</div><div>المستوى: ${esc(j.SMT)}</div><div>${esc(j.HARI)} ${esc(j.WAKTU)}</div></div>`
+function labelHtml(j){const a=isAr(j.KELAS),jn=$('l_jn').value;return a?`<div class="lb ar"><h4>نص الأسئلة</h4><div>المادة: ${esc(j.MATKUL_ARAB||j.MATA_KULIAH)}</div><div>المدرس: ${esc(j.DOSEN_ARAB||j.DOSEN_1)}</div><div>المستوى: ${esc(j.SMT)}</div><div>${esc(j.HARI_ARAB||j.HARI)} ${esc(j.WAKTU_ARAB||j.WAKTU)}</div></div>`
  :`<div class="lb"><h4>NASKAH SOAL ${jn}</h4><div><b>Mata Kuliah:</b> ${esc(j.MATA_KULIAH)}</div><div><b>Dosen:</b> ${esc(j.DOSEN_1)}</div><div><b>Prodi/Smt:</b> ${esc(j.PRODI)} / ${esc(j.SMT)} · ${esc(j.KELAS)}</div><div>${esc(j.HARI)}, ${esc(j.WAKTU)}</div></div>`}
 function labelPages(){const sel=S.jadwal.filter(j=>LB.has(j.ID)),ktp=$('l_sz').value==='ktp',pgs=[];for(let i=0;i<Math.max(sel.length,1);i+=10){const c=sel.slice(i,i+10);while(c.length<10&&sel.length)c.push(null);
  pgs.push(`<div class="pg" style="padding:7mm"><div class="lg">${c.map(j=>`<div style="padding:${ktp?'2mm 9mm':0};overflow:hidden">${j?labelHtml(j):''}</div>`).join('')}</div></div>`)}return pgs}
