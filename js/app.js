@@ -78,7 +78,7 @@ function togD(e){const d=S.dosen.find(x=>x.EMAIL===e);d.STATUS_AKTIF=String(d.ST
 function delD(e){S.dosen=S.dosen.filter(x=>x.EMAIL!==e);saveD()}
 function setS(){S.set.OFFSET=$('s_off').value;S.set.MARGIN=$('s_mar').value;persist();renderSoal();bg('saveSet',S.set)}
 const cacheK=()=>{try{localStorage.kops=JSON.stringify(KOPS)}catch(e){}};
-const shrink=u=>new Promise(r=>{const i=new Image;i.onload=()=>{const w=Math.min(i.width,1654),c=document.createElement('canvas');c.width=w;c.height=i.height*w/i.width;c.getContext('2d').drawImage(i,0,0,c.width,c.height);r(c.toDataURL('image/jpeg',.9))};i.onerror=()=>r(u);i.src=u});
+const shrink=u=>new Promise(r=>{const i=new Image;i.onload=()=>{const w=Math.min(i.width,1654),c=document.createElement('canvas');c.width=w;c.height=i.height*w/i.width;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(i,0,0,c.width,c.height);r(c.toDataURL('image/jpeg',.9))};i.onerror=()=>r(u);i.src=u});
 async function upKop(f,slot){if(!f)return;const r=new FileReader;r.onload=async()=>{KOPS[slot]=await shrink(r.result);cacheK();S.set['KOP_'+slot]=S.set['KOP_'+slot]||'1';renderSet();renderSoal();toast('Kop '+slot.replace('_',' ')+' terpasang')};r.readAsDataURL(f);
  bg('saveKop',{slot,name:f.name,mime:f.type,b64:await b64(f)})}
 // ===== Buat Soal (pratinjau instan di browser)
