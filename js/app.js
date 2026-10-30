@@ -78,7 +78,7 @@ function togD(e){const d=S.dosen.find(x=>x.EMAIL===e);d.STATUS_AKTIF=String(d.ST
 function delD(e){S.dosen=S.dosen.filter(x=>x.EMAIL!==e);saveD()}
 function setS(){S.set.OFFSET=$('s_off').value;S.set.MARGIN=$('s_mar').value;persist();renderSoal();bg('saveSet',S.set)}
 const cacheK=()=>{try{localStorage.kops=JSON.stringify(KOPS)}catch(e){}};
-const shrink=u=>new Promise(r=>{const i=new Image;i.onload=()=>{const w=Math.min(i.width,1654),c=document.createElement('canvas');c.width=w;c.height=i.height*w/i.width;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(i,0,0,c.width,c.height);r(c.toDataURL('image/jpeg',.9))};i.onerror=()=>r(u);i.src=u});
+const shrink=u=>new Promise(r=>{const i=new Image;i.onload=()=>{const w=Math.min(i.width,2480),c=document.createElement('canvas');c.width=w;c.height=i.height*w/i.width;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(i,0,0,c.width,c.height);r(c.toDataURL('image/png'))};i.onerror=()=>r(u);i.src=u});
 async function upKop(f,slot){if(!f)return;const r=new FileReader;r.onload=async()=>{KOPS[slot]=await shrink(r.result);cacheK();S.set['KOP_'+slot]=S.set['KOP_'+slot]||'1';renderSet();renderSoal();toast('Kop '+slot.replace('_',' ')+' terpasang')};r.readAsDataURL(f);
  bg('saveKop',{slot,name:f.name,mime:f.type,b64:await b64(f)})}
 // ===== Buat Soal (pratinjau instan di browser)
@@ -106,7 +106,7 @@ function labelPages(){const sel=S.jadwal.filter(j=>LB.has(j.ID)),ktp=$('l_sz').v
 function renderLabel(){$('l_list').innerHTML=S.jadwal.map(j=>`<label style="text-transform:none;font-size:13px;color:inherit"><input type="checkbox" style="width:auto" ${LB.has(j.ID)?'checked':''} onchange="this.checked?LB.add('${j.ID}'):LB.delete('${j.ID}');renderLabel()"> ${esc(j.MATA_KULIAH)} <span class="tag">${esc(j.KELAS)}</span></label>`).join('');$('pvl').innerHTML=labelPages()[0];zoomAll()}
 // ===== PDF (dibuat di browser, diunggah ke Drive)
 async function toPdf(pages,land){const {jsPDF}=window.jspdf,doc=new jsPDF(land?'l':'p','mm','a4'),h=document.createElement('div');h.style.cssText='position:fixed;left:-9999px;top:0';document.body.appendChild(h);
- for(let i=0;i<pages.length;i++){h.innerHTML=pages[i];const c=await html2canvas(h.firstElementChild,{scale:2,useCORS:true});if(i)doc.addPage('a4',land?'l':'p');doc.addImage(c.toDataURL('image/jpeg',.92),'JPEG',0,0,land?297:210,land?210:297)}
+ for(let i=0;i<pages.length;i++){h.innerHTML=pages[i];const c=await html2canvas(h.firstElementChild,{scale:3.125,useCORS:true});if(i)doc.addPage('a4',land?'l':'p');doc.addImage(c.toDataURL('image/jpeg',.95),'JPEG',0,0,land?297:210,land?210:297)}
  h.remove();return doc}
 async function savePdf(){const j=S.jadwal.find(x=>x.ID===$('f_mk').value);if(!j)return toast('Pilih mata kuliah',1);toast('Membuat PDF…');
  const d=await toPdf([paper()],!!$('f_two').value),name=`${$('f_jenis').value}_${$('f_sem').value}_${$('f_ta').value.replace('/','-')}_${j.MATA_KULIAH.replace(/\W+/g,'_')}.pdf`;
@@ -114,7 +114,7 @@ async function savePdf(){const j=S.jadwal.find(x=>x.ID===$('f_mk').value);if(!j)
  d.save(name);bg('uploadBank',[{name,mime:'application/pdf',b64:d.output('datauristring').split(',')[1],meta}],r=>{S.bank=r;persist();renderBank();toast('PDF masuk Bank Soal')})}
 async function saveLabel(){if(!LB.size)return toast('Pilih jadwal',1);toast('Membuat PDF…');(await toPdf(labelPages())).save('Label_Map_'+$('l_jn').value+'.pdf')}
 async function dlPng(pages,base){const h=document.createElement('div');h.style.cssText='position:fixed;left:-9999px;top:0';document.body.appendChild(h);
- try{for(let i=0;i<pages.length;i++){h.innerHTML=pages[i];const c=await html2canvas(h.firstElementChild,{scale:2,useCORS:true,backgroundColor:'#fff'}),a=document.createElement('a');a.href=c.toDataURL('image/png');a.download=base+(pages.length>1?'_'+(i+1):'')+'.png';a.click();await new Promise(r=>setTimeout(r,300))}}finally{h.remove()}}
+ try{for(let i=0;i<pages.length;i++){h.innerHTML=pages[i];const c=await html2canvas(h.firstElementChild,{scale:3.125,useCORS:true,backgroundColor:'#fff'}),a=document.createElement('a');a.href=c.toDataURL('image/png');a.download=base+(pages.length>1?'_'+(i+1):'')+'.png';a.click();await new Promise(r=>setTimeout(r,300))}}finally{h.remove()}}
 async function savePng(){const j=S.jadwal.find(x=>x.ID===$('f_mk').value);if(!j)return toast('Pilih mata kuliah',1);toast('Membuat PNG…');
  await dlPng([paper()],`${$('f_jenis').value}_${$('f_sem').value}_${$('f_ta').value.replace('/','-')}_${j.MATA_KULIAH.replace(/\W+/g,'_')}`);toast('PNG diunduh')}
 async function saveLabelPng(){if(!LB.size)return toast('Pilih jadwal',1);toast('Membuat PNG…');await dlPng(labelPages(),'Label_Map_'+$('l_jn').value);toast('PNG diunduh')}
