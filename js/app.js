@@ -1,6 +1,6 @@
 // UJIAN KAMPUS — SPA: navigasi 0ms, cache lokal (stale-while-revalidate), sync latar belakang
 const $=i=>document.getElementById(i),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let S=JSON.parse(localStorage.uk||'{"role":"","jadwal":[],"bank":[],"dosen":[],"set":{}}'),T=sessionStorage.tk,KOP=localStorage.kop||'',curNav='home',LB=new Set();
+let S=JSON.parse(localStorage.uk||'{"role":"","jadwal":[],"bank":[],"dosen":[],"set":{}}'),T=sessionStorage.tk,KOPS=(()=>{try{return JSON.parse(localStorage.kops||'{}')}catch(e){return{}}})(),curNav='home',LB=new Set();
 const persist=()=>localStorage.uk=JSON.stringify(S),adm=()=>S.role==='admin',isAr=k=>/ma.?had/i.test(k||'');
 function toast(m,e){const t=$('toast');t.textContent=m;t.className='s'+(e?' e':'');clearTimeout(t._);t._=setTimeout(()=>t.className='',2800)}
 async function api(a,d){const r=await fetch(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:a,token:T,data:d})}).then(r=>r.json());
@@ -13,7 +13,7 @@ window.onload=()=>{const iv=setInterval(()=>{if(!window.google?.accounts)return;
  google.accounts.id.renderButton($('gbtn'),{theme:'outline',size:'large',text:'signin_with'})},100);if(T)start()};
 const NAVS=[['home','Beranda'],['soal','Buat Soal',1],['label','Label Map',1],['bank','Bank Soal'],['jadwal','Data Jadwal',1],['set','Pengaturan',1]];
 function start(){$('login').hidden=true;$('app').hidden=false;if(!$('views').children.length)build();renderAll();nav(S.role==='dosen'?'bank':(location.hash.slice(1)||'home'));boot();
- if(!KOP&&adm())bg('getKop',0,k=>{KOP=k;try{localStorage.kop=k}catch(e){}renderSoal()})}
+ if(adm())bg('getKops',0,async k=>{for(const s in k)KOPS[s]=await shrink(k[s]);cacheK();renderSoal();renderSet()})}
 function nav(p){if(!adm()&&p!=='bank')p='bank';curNav=p;document.querySelectorAll('.v').forEach(v=>v.classList.toggle('on',v.id==='v-'+p));
  document.querySelectorAll('#nav a').forEach(a=>a.classList.toggle('on',a.dataset.p===p));$('ttl').textContent=NAVS.find(n=>n[0]===p)[1];$('side').classList.remove('show');location.hash=p;scrollTo(0,0)}
 function build(){$('nav').innerHTML=NAVS.map(n=>`<a data-p="${n[0]}" class="${n[2]?'adm':''}" onclick="nav('${n[0]}')">${n[1]}</a>`).join('');
@@ -31,8 +31,8 @@ function build(){$('nav').innerHTML=NAVS.map(n=>`<a data-p="${n[0]}" class="${n[
 <section class="v" id="v-label"><h2>Label Map Ujian</h2><p class="sub">A4 dibagi 10 (2×5) atau ukuran KTP. Pilih jadwal.</p><div class="g2"><div class="box"><div class="row"><select id="l_sz" onchange="renderLabel()"><option value="a4">A4 ÷ 10 (105×59,4 mm)<option value="ktp">KTP (85,6×54 mm)</select><select id="l_jn" onchange="renderLabel()"><option>UTS<option selected>UAS</select></div><div class="row"><button onclick="LB=new Set(S.jadwal.map(j=>j.ID));renderLabel()">Pilih semua</button><button onclick="LB.clear();renderLabel()">Kosongkan</button></div><div id="l_list" style="max-height:420px;overflow:auto"></div><div class="row"><button class="p" onclick="saveLabel()">Simpan PDF Label</button></div></div><div class="pv" id="pvl"></div></div></section>
 <section class="v" id="v-bank"><h2>Bank Soal & Arsip</h2><p class="sub" id="b_sub"></p><div class="box"><div class="row"><input id="b_q" placeholder="Cari mata kuliah, dosen, nama berkas…" oninput="renderBank()"><select id="b_j" onchange="renderBank()"><option value="">UTS & UAS<option>UTS<option>UAS</select><select id="b_k" onchange="renderBank()"></select>
 <span class="adm"><button class="p" onclick="$('b_up').click()">+ Unggah Berkas</button><input id="b_up" type="file" hidden multiple accept=".pdf,.doc,.docx,.xls,.xlsx" onchange="upBank(this.files)"></span></div><div class="tw"><table><thead><tr><th>Tipe<th>Berkas & Mata Kuliah<th>Kelas<th>Jenis<th>T.A<th>Dosen<th></tr></thead><tbody id="b_t"></tbody></table></div></div></section>
-<section class="v" id="v-jadwal"><h2>Data Jadwal</h2><p class="sub">Impor CSV (Excel → Simpan sebagai CSV) dengan kolom: SMT, KELAS, MATA_KULIAH, DOSEN_1, DOSEN_2, HARI, WAKTU, MATKUL_ARAB, DOSEN_ARAB, PRODI.</p><div class="box"><div class="row"><input id="j_q" placeholder="Cari…" oninput="renderJadwal()"><button class="p" onclick="$('j_f').click()">Impor CSV</button><input id="j_f" type="file" hidden accept=".csv,.txt" onchange="impJadwal(this.files[0])"><button onclick="addJ()">+ Tambah Baris</button></div><div class="tw"><table><thead><tr><th>Smt<th>Kelas<th>Mata Kuliah<th>Arab<th>Dosen 1<th>Hari & Jam<th></tr></thead><tbody id="j_t"></tbody></table></div></div></section>
-<section class="v" id="v-set"><h2>Pengaturan</h2><div class="g2"><div class="box"><h3>Kop Kampus (full-bleed A4)</h3><input type="file" accept="image/*" onchange="upKop(this.files[0])"><div class="row"><div><label>Offset teks dari atas (mm)</label><input id="s_off" type="number" onchange="setS()"></div><div><label>Margin kiri/kanan (mm)</label><input id="s_mar" type="number" onchange="setS()"></div></div><p class="sub">Gambar kop akan menutupi bagian atas lembar tanpa margin.</p></div>
+<section class="v" id="v-jadwal"><h2>Data Jadwal</h2><p class="sub">Impor file Excel (.xlsx) langsung, baris judul kolom dikenali otomatis. Kolom: SMT, KELAS, MATA_KULIAH, DOSEN_1, DOSEN_2, HARI, WAKTU, MATKUL_ARAB, DOSEN_ARAB, PRODI.</p><div class="box"><div class="row"><input id="j_q" placeholder="Cari…" oninput="renderJadwal()"><button class="p" onclick="$('j_f').click()">Impor Excel (.xlsx)</button><input id="j_f" type="file" hidden accept=".xlsx,.xls,.csv" onchange="impJadwal(this.files[0])"><button onclick="addJ()">+ Tambah Baris</button></div><div class="tw"><table><thead><tr><th>Smt<th>Kelas<th>Mata Kuliah<th>Arab<th>Dosen 1<th>Hari & Jam<th></tr></thead><tbody id="j_t"></tbody></table></div></div></section>
+<section class="v" id="v-set"><h2>Pengaturan</h2><div class="g2"><div class="box"><h3>Kop Kampus (full-bleed A4)</h3><p class="sub">Kop sudah memuat judul ujian, jadi unggah satu per bahasa & jenis ujian.</p>${[['ID_UTS','Indonesia · UTS'],['ID_UAS','Indonesia · UAS'],['AR_UTS','Arab (Ma\'had Aly) · UTS'],['AR_UAS','Arab (Ma\'had Aly) · UAS']].map(k=>`<label>${k[1]} <b id="ks_${k[0]}" style="color:#15803d"></b></label><input type="file" accept="image/*" onchange="upKop(this.files[0],'${k[0]}')">`).join('')}<div class="row"><div><label>Offset teks dari atas (mm)</label><input id="s_off" type="number" onchange="setS()"></div><div><label>Margin kiri/kanan (mm)</label><input id="s_mar" type="number" onchange="setS()"></div></div><p class="sub">Gambar kop akan menutupi bagian atas lembar tanpa margin.</p></div>
 <div class="box"><h3>Daftar Email Dosen (whitelist)</h3><div class="row"><input id="d_e" placeholder="email"><input id="d_n" placeholder="nama"><button class="p" onclick="addD()">Tambah</button></div><div class="tw"><table><tbody id="d_t"></tbody></table></div></div></div></section></div>`;
  ['f_jenis','f_ta','f_sem','f_dosen','f_prodi','f_smt','f_hari','f_tgl','f_jam','f_dur','f_sifat','f_fs','f_two','f_soal'].forEach(i=>$(i).addEventListener('input',renderSoal));
  $('f_kelas').onchange=()=>{fillMk();renderSoal()};$('f_mk').onchange=()=>{fillId();renderSoal()};
@@ -59,21 +59,26 @@ function renderJadwal(){const q=($('j_q').value||'').toLowerCase(),seen={};
  $('j_t').innerHTML=S.jadwal.filter(j=>JSON.stringify(j).toLowerCase().includes(q)).map(j=>{const k=j.SMT+j.KELAS+j.MATA_KULIAH,d=seen[k]++;seen[k]=1;return`<tr><td>${esc(j.SMT)}<td><span class="tag">${esc(j.KELAS)}</span><td>${esc(j.MATA_KULIAH)}<td class="ar">${esc(j.MATKUL_ARAB)}<td>${esc(j.DOSEN_1)}<td>${esc(j.HARI)} ${esc(j.WAKTU)}<td><button onclick="delJ('${j.ID}')">Hapus</button>`}).join('')||'<tr><td colspan=7>Belum ada data.'}
 const saveJ=()=>{persist();renderAll();bg('saveJadwal',S.jadwal)};
 function parseCSV(t){const d=t.split('\n')[0].includes(';')?';':',',rows=[];let r=[],c='',q=0;for(const ch of t.replace(/\r/g,'')){if(ch=='"')q=!q;else if(ch==d&&!q){r.push(c);c=''}else if(ch=='\n'&&!q){r.push(c);rows.push(r);r=[];c=''}else c+=ch}r.push(c);rows.push(r);return rows.filter(x=>x.join('').trim())}
-async function impJadwal(f){if(!f)return;const R=parseCSV(await f.text()),H=R[0].map(h=>h.trim().toUpperCase().replace(/[ .]+/g,'_'));
- const rows=R.slice(1).map(r=>{const o={ID:crypto.randomUUID()};JC.forEach(c=>o[c]=(r[H.indexOf(c)]||'').trim());return o}).filter(o=>o.MATA_KULIAH);
- S.jadwal=S.jadwal.concat(rows);saveJ();toast(rows.length+' baris diimpor')}
+const AL={MATKUL:'MATA_KULIAH',MATAKULIAH:'MATA_KULIAH',MATA_KULIAH_ID:'MATA_KULIAH',MATKUL_ID:'MATA_KULIAH',DOSEN:'DOSEN_1',DOSEN_UTAMA:'DOSEN_1',DOSEN_UTAMA_CETAK:'DOSEN_1',JAM:'WAKTU',HARI_JAM:'WAKTU',PROGRAM_STUDI:'PRODI',SEMESTER:'SMT'};
+async function impJadwal(f){if(!f)return;let R;try{R=/\.xlsx?$/i.test(f.name)?XLSX.utils.sheet_to_json((wb=>wb.Sheets[wb.SheetNames[0]])(XLSX.read(await f.arrayBuffer())),{header:1,raw:false,defval:''}):parseCSV(await f.text())}catch(e){return toast('File tidak terbaca',1)}
+ const hi=Math.max(0,R.findIndex(r=>/KULIAH|MATKUL/i.test(r.join('|')))),H=R[hi].map(h=>{h=String(h).trim().toUpperCase().replace(/[ .()]+/g,'_').replace(/^_|_$/g,'');return AL[h]||h});
+ const rows=R.slice(hi+1).map(r=>{const o={ID:crypto.randomUUID()};JC.forEach(c=>o[c]=String(r[H.indexOf(c)]??'').trim());return o}).filter(o=>o.MATA_KULIAH);
+ if(!rows.length)return toast('Kolom MATA_KULIAH tidak ditemukan',1);
+ S.jadwal=S.jadwal.length&&!confirm(`Ganti ${S.jadwal.length} baris lama dengan hasil impor?\nOK = ganti, Batal = tambahkan`)?S.jadwal.concat(rows):rows;saveJ();toast(rows.length+' baris diimpor')}
 function addJ(){const o={ID:crypto.randomUUID()};JC.forEach(c=>o[c]=prompt(c)||'');if(!o.MATA_KULIAH)return;S.jadwal.push(o);saveJ()}
 function delJ(id){S.jadwal=S.jadwal.filter(j=>j.ID!==id);saveJ()}
 // ===== Pengaturan
-function renderSet(){$('s_off').value=S.set.OFFSET||45;$('s_mar').value=S.set.MARGIN||20;
+function renderSet(){['ID_UTS','ID_UAS','AR_UTS','AR_UAS'].forEach(s=>{const e=$('ks_'+s);if(e)e.textContent=KOPS[s]||S.set['KOP_'+s]?' ✓ terpasang':''});$('s_off').value=S.set.OFFSET||45;$('s_mar').value=S.set.MARGIN||20;
  $('d_t').innerHTML=S.dosen.map(d=>`<tr><td>${esc(d.NAMA)}<br><small>${esc(d.EMAIL)}</small><td><button onclick="togD('${esc(d.EMAIL)}')">${String(d.STATUS_AKTIF)==='false'?'Aktifkan':'Nonaktifkan'}</button> <button onclick="delD('${esc(d.EMAIL)}')">Hapus</button>`).join('')}
 const saveD=()=>{persist();renderSet();$('vw')&&renderHome();bg('saveDosen',S.dosen)};
 function addD(){const e=$('d_e').value.trim().toLowerCase();if(!e)return;S.dosen.push({EMAIL:e,NAMA:$('d_n').value,STATUS_AKTIF:true});$('d_e').value=$('d_n').value='';saveD()}
 function togD(e){const d=S.dosen.find(x=>x.EMAIL===e);d.STATUS_AKTIF=String(d.STATUS_AKTIF)==='false';saveD()}
 function delD(e){S.dosen=S.dosen.filter(x=>x.EMAIL!==e);saveD()}
 function setS(){S.set.OFFSET=$('s_off').value;S.set.MARGIN=$('s_mar').value;persist();renderSoal();bg('saveSet',S.set)}
-async function upKop(f){if(!f)return;const r=new FileReader;r.onload=()=>{KOP=r.result;try{localStorage.kop=KOP}catch(e){}renderSoal();toast('Kop diperbarui')};r.readAsDataURL(f);
- bg('saveKop',{name:f.name,mime:f.type,b64:await b64(f)})}
+const cacheK=()=>{try{localStorage.kops=JSON.stringify(KOPS)}catch(e){}};
+const shrink=u=>new Promise(r=>{const i=new Image;i.onload=()=>{const w=Math.min(i.width,1654),c=document.createElement('canvas');c.width=w;c.height=i.height*w/i.width;c.getContext('2d').drawImage(i,0,0,c.width,c.height);r(c.toDataURL('image/jpeg',.9))};i.onerror=()=>r(u);i.src=u});
+async function upKop(f,slot){if(!f)return;const r=new FileReader;r.onload=async()=>{KOPS[slot]=await shrink(r.result);cacheK();S.set['KOP_'+slot]=S.set['KOP_'+slot]||'1';renderSet();renderSoal();toast('Kop '+slot.replace('_',' ')+' terpasang')};r.readAsDataURL(f);
+ bg('saveKop',{slot,name:f.name,mime:f.type,b64:await b64(f)})}
 // ===== Buat Soal (pratinjau instan di browser)
 const uniq=a=>[...new Set(a.filter(Boolean))];
 function fillKelas(){const k=$('f_kelas');if(k.options.length)return;k.innerHTML=uniq(S.jadwal.map(j=>j.KELAS)).map(x=>`<option>${esc(x)}`).join('');fillMk()}
@@ -82,12 +87,12 @@ function fillId(){const j=S.jadwal.find(x=>x.ID===$('f_mk').value);if(!j)return;
  $('f_dosen').value=a?(j.DOSEN_ARAB||j.DOSEN_1):j.DOSEN_1;$('f_prodi').value=j.PRODI||'';$('f_smt').value=j.SMT;$('f_hari').value=j.HARI;$('f_jam').value=j.WAKTU}
 function paper(){const v=i=>esc($(i).value),j=S.jadwal.find(x=>x.ID===$('f_mk').value)||{},a=isAr(j.KELAS),mm=x=>x*3.78,off=mm(+S.set.OFFSET||45),mar=mm(+S.set.MARGIN||20),fs=$('f_fs').value+'pt',two=$('f_two').value;
  const mk=a?(j.MATKUL_ARAB||j.MATA_KULIAH):j.MATA_KULIAH,tt=$('f_jenis').value==='UTS'?'TENGAH':'AKHIR';
- const hd=KOP?'':`<div class="ih" style="margin-bottom:8px">SEKOLAH TINGGI ILMU SYARIAH AL WAFA BOGOR</div>`;
- const ttl=a?`<div class="ih ar">الاختبار ${tt==='AKHIR'?'لنهاية':'لنصف'} الفصل — ${v('f_ta')}</div>`:`<div class="ih">UJIAN ${tt} SEMESTER (${v('f_jenis')}) ${v('f_sem').toUpperCase()} T.A ${v('f_ta')}</div>`;
+ const K=KOPS[(a?'AR':'ID')+'_'+$('f_jenis').value]||'',hd=K?'':`<div class="ih" style="margin-bottom:8px">SEKOLAH TINGGI ILMU SYARIAH AL WAFA BOGOR</div>`;
+ const ttl=K?'':a?`<div class="ih ar">الاختبار ${tt==='AKHIR'?'لنهاية':'لنصف'} الفصل — ${v('f_ta')}</div>`:`<div class="ih">UJIAN ${tt} SEMESTER (${v('f_jenis')}) ${v('f_sem').toUpperCase()} T.A ${v('f_ta')}</div>`;
  const L=a?[['المادة',mk],['المدرس',v('f_dosen')],['المستوى',v('f_smt')],['اليوم',v('f_hari')+' '+v('f_tgl')],['الوقت',v('f_jam')+' ('+v('f_dur')+')'],['اسم الطالب','']]:[['Mata Kuliah',esc(mk)],['Dosen Pengampu',v('f_dosen')],['Prodi / Smt',v('f_prodi')+' / '+v('f_smt')],['Sifat',v('f_sifat')],['Hari/Tanggal',v('f_hari')+', '+v('f_tgl')],['Jam',v('f_jam')+' ('+v('f_dur')+')'],['Nama Mahasiswa','................']];
- const inner=`<div class="pi ${a?'ar':''}" style="padding:${two?mm(14):off}px ${two?mm(10):mar}px 30px;font-size:${fs}">${hd}${ttl}<div class="idt">${L.map(x=>`<div><b>${x[0]}:</b> ${x[1]}</div>`).join('')}</div><div class="body">${v('f_soal')}</div></div>`;
- const bgs=KOP&&!two?`background-image:url(${KOP})`:'';
- return two?`<div class="pg l"><div class="hf">${inner}</div><div class="hf">${inner}</div></div>`:`<div class="pg" style="${bgs}">${inner}</div>`}
+ const inner=`<div class="pi ${a?'ar':''}" style="padding:${two?(K?off*.71:mm(14)):off}px ${two?mm(10):mar}px 30px;font-size:${fs}">${hd}${ttl}<div class="idt">${L.map(x=>`<div><b>${x[0]}:</b> ${x[1]}</div>`).join('')}</div><div class="body">${v('f_soal')}</div></div>`;
+ const bgs=K?`background-image:url(${K})`:'';
+ return two?`<div class="pg l"><div class="hf" style="${bgs}">${inner}</div><div class="hf" style="${bgs}">${inner}</div></div>`:`<div class="pg" style="${bgs}">${inner}</div>`}
 function zoomAll(){document.querySelectorAll('.pv').forEach(p=>{const g=p.firstElementChild;if(!g)return;g.style.zoom=1;const z=(p.clientWidth-16)/g.offsetWidth;g.style.zoom=Math.min(z,1)})}
 function renderSoal(){if(!$('f_mk').value&&$('f_kelas').options.length)fillMk();$('pvs').innerHTML=paper();zoomAll()}
 // ===== Label Map
