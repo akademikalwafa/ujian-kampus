@@ -7,10 +7,11 @@ async function api(a,d){const r=await fetch(GAS_URL,{method:'POST',headers:{'Con
  if(r.code==401){logout();throw Error(r.message)}if(!r.success)throw Error(r.message);return r.data}
 const bg=(a,d,ok)=>{$('sync').textContent='Menyinkronkan…';return api(a,d).then(x=>{$('sync').textContent='Tersinkron';ok&&ok(x)}).catch(e=>{$('sync').textContent='Gagal sinkron';toast(e.message,1)})};
 const boot=()=>api('boot').then(d=>{S=Object.assign(S,d);persist();renderAll();$('sync').textContent='Tersinkron'}).catch(e=>$('sync').textContent='Offline (data lokal)');
-function logout(){sessionStorage.removeItem('tk');T=null;$('app').hidden=true;$('login').hidden=false}
-window.onload=()=>{const iv=setInterval(()=>{if(!window.google?.accounts)return;clearInterval(iv);
- google.accounts.id.initialize({client_id:CLIENT_ID,callback:r=>{T=r.credential;sessionStorage.tk=T;start()}});
- google.accounts.id.renderButton($('gbtn'),{theme:'outline',size:'large',text:'signin_with'})},100);if(T)start()};
+function logout(c){sessionStorage.removeItem('tk');T=null;if(c===1){['uk','kops','ue'].forEach(k=>localStorage.removeItem(k));S={role:'',jadwal:[],bank:[],dosen:[],set:{}};KOPS={};$('views').innerHTML=''}$('app').hidden=true;$('login').hidden=false}
+window.onload=()=>{if(T)start()};
+async function doLogin(){const email=$('l_e').value.trim().toLowerCase(),pin=$('l_p').value;if(!email||!pin)return toast('Isi email dan PIN',1);const b=$('l_b');b.disabled=true;b.textContent='Memeriksa…';
+ try{const r=await api('login',{email,pin});if(localStorage.ue!==email){['uk','kops'].forEach(k=>localStorage.removeItem(k));S={role:'',jadwal:[],bank:[],dosen:[],set:{}};KOPS={};$('views').innerHTML=''}localStorage.ue=email;T=r.token;sessionStorage.tk=T;$('l_p').value='';start()}catch(e){toast(e.message,1)}
+ b.disabled=false;b.textContent='Masuk'}
 const NAVS=[['home','Beranda'],['soal','Buat Soal',1],['label','Label Map',1],['bank','Bank Soal'],['jadwal','Data Jadwal',1],['set','Pengaturan',1]];
 function start(){$('login').hidden=true;$('app').hidden=false;if(!$('views').children.length)build();renderAll();nav(S.role==='dosen'?'bank':(location.hash.slice(1)||'home'));boot();
  if(adm())bg('getKops',0,async k=>{for(const s in k)KOPS[s]=await shrink(k[s]);cacheK();renderSoal();renderSet()})}
@@ -33,7 +34,7 @@ function build(){$('nav').innerHTML=NAVS.map(n=>`<a data-p="${n[0]}" class="${n[
 <span class="adm"><button class="p" onclick="$('b_up').click()">+ Unggah Berkas</button><input id="b_up" type="file" hidden multiple accept=".pdf,.doc,.docx,.xls,.xlsx" onchange="upBank(this.files)"></span></div><div class="tw"><table><thead><tr><th>Tipe<th>Berkas & Mata Kuliah<th>Kelas<th>Jenis<th>T.A<th>Dosen<th></tr></thead><tbody id="b_t"></tbody></table></div></div></section>
 <section class="v" id="v-jadwal"><h2>Data Jadwal</h2><p class="sub">Impor file Excel (.xlsx) langsung, baris judul kolom dikenali otomatis. Kolom: SMT, KELAS, MATA_KULIAH, DOSEN_1, DOSEN_2, HARI, WAKTU, MATKUL_ARAB, DOSEN_ARAB, PRODI.</p><div class="box"><div class="row"><input id="j_q" placeholder="Cari…" oninput="renderJadwal()"><button class="p" onclick="$('j_f').click()">Impor Excel (.xlsx)</button><input id="j_f" type="file" hidden accept=".xlsx,.xls,.csv" onchange="impJadwal(this.files[0])"><button onclick="addJ()">+ Tambah Baris</button></div><div class="tw"><table><thead><tr><th>Smt<th>Kelas<th>Mata Kuliah<th>Arab<th>Dosen 1<th>Hari & Jam<th></tr></thead><tbody id="j_t"></tbody></table></div></div></section>
 <section class="v" id="v-set"><h2>Pengaturan</h2><div class="g2"><div class="box"><h3>Kop Kampus (full-bleed A4)</h3><p class="sub">Kop sudah memuat judul ujian, jadi unggah satu per bahasa & jenis ujian.</p>${[['ID_UTS','Indonesia · UTS'],['ID_UAS','Indonesia · UAS'],['AR_UTS','Arab (Ma\'had Aly) · UTS'],['AR_UAS','Arab (Ma\'had Aly) · UAS']].map(k=>`<label>${k[1]} <b id="ks_${k[0]}" style="color:#15803d"></b></label><input type="file" accept="image/*" onchange="upKop(this.files[0],'${k[0]}')">`).join('')}<div class="row"><div><label>Offset teks dari atas (mm)</label><input id="s_off" type="number" onchange="setS()"></div><div><label>Margin kiri/kanan (mm)</label><input id="s_mar" type="number" onchange="setS()"></div></div><p class="sub">Gambar kop akan menutupi bagian atas lembar tanpa margin.</p></div>
-<div class="box"><h3>Daftar Email Dosen (whitelist)</h3><div class="row"><input id="d_e" placeholder="email"><input id="d_n" placeholder="nama"><button class="p" onclick="addD()">Tambah</button></div><div class="tw"><table><tbody id="d_t"></tbody></table></div></div></div></section></div>`;
+<div class="box"><h3>Daftar Email Dosen (whitelist)</h3><div class="row"><input id="d_e" placeholder="email"><input id="d_n" placeholder="nama"><input id="d_p" placeholder="PIN (min 4)"><button class="p" onclick="addD()">Tambah</button></div><div class="tw"><table><tbody id="d_t"></tbody></table></div></div></div></section></div>`;
  ['f_jenis','f_ta','f_sem','f_dosen','f_prodi','f_smt','f_hari','f_tgl','f_jam','f_dur','f_sifat','f_fs','f_two','f_soal'].forEach(i=>$(i).addEventListener('input',renderSoal));
  $('f_kelas').onchange=()=>{fillMk();renderSoal()};$('f_mk').onchange=()=>{fillId();renderSoal()};
  window.onresize=zoomAll}
@@ -69,9 +70,10 @@ function addJ(){const o={ID:crypto.randomUUID()};JC.forEach(c=>o[c]=prompt(c)||'
 function delJ(id){S.jadwal=S.jadwal.filter(j=>j.ID!==id);saveJ()}
 // ===== Pengaturan
 function renderSet(){['ID_UTS','ID_UAS','AR_UTS','AR_UAS'].forEach(s=>{const e=$('ks_'+s);if(e)e.textContent=KOPS[s]||S.set['KOP_'+s]?' ✓ terpasang':''});$('s_off').value=S.set.OFFSET||45;$('s_mar').value=S.set.MARGIN||20;
- $('d_t').innerHTML=S.dosen.map(d=>`<tr><td>${esc(d.NAMA)}<br><small>${esc(d.EMAIL)}</small><td><button onclick="togD('${esc(d.EMAIL)}')">${String(d.STATUS_AKTIF)==='false'?'Aktifkan':'Nonaktifkan'}</button> <button onclick="delD('${esc(d.EMAIL)}')">Hapus</button>`).join('')}
-const saveD=()=>{persist();renderSet();$('vw')&&renderHome();bg('saveDosen',S.dosen)};
-function addD(){const e=$('d_e').value.trim().toLowerCase();if(!e)return;S.dosen.push({EMAIL:e,NAMA:$('d_n').value,STATUS_AKTIF:true});$('d_e').value=$('d_n').value='';saveD()}
+ $('d_t').innerHTML=S.dosen.map(d=>`<tr><td>${esc(d.NAMA)}<br><small>${esc(d.EMAIL)}</small><td><small>${d.ADA_PIN?'PIN ✓':'Belum ada PIN'}</small> <button onclick="chgP('${esc(d.EMAIL)}')">Ubah PIN</button> <button onclick="togD('${esc(d.EMAIL)}')">${String(d.STATUS_AKTIF)==='false'?'Aktifkan':'Nonaktifkan'}</button> <button onclick="delD('${esc(d.EMAIL)}')">Hapus</button>`).join('')}
+const saveD=()=>{const o=S.dosen.map(d=>({...d}));S.dosen.forEach(d=>{d.ADA_PIN=d.ADA_PIN||!!d.PIN;delete d.PIN});persist();renderSet();renderHome();bg('saveDosen',o)};
+function chgP(e){const n=prompt('PIN baru untuk '+e+' (min 4 karakter):');if(!n||n.length<4)return;S.dosen.find(x=>x.EMAIL===e).PIN=n;saveD();toast('PIN diperbarui')}
+function addD(){const e=$('d_e').value.trim().toLowerCase();if(!e)return;if($('d_p').value.length<4)return toast('PIN minimal 4 karakter',1);S.dosen.push({EMAIL:e,NAMA:$('d_n').value,STATUS_AKTIF:true,PIN:$('d_p').value});$('d_e').value=$('d_n').value=$('d_p').value='';saveD()}
 function togD(e){const d=S.dosen.find(x=>x.EMAIL===e);d.STATUS_AKTIF=String(d.STATUS_AKTIF)==='false';saveD()}
 function delD(e){S.dosen=S.dosen.filter(x=>x.EMAIL!==e);saveD()}
 function setS(){S.set.OFFSET=$('s_off').value;S.set.MARGIN=$('s_mar').value;persist();renderSoal();bg('saveSet',S.set)}

@@ -1,14 +1,14 @@
-# Panduan Instalasi — Ujian Kampus
+# Panduan Instalasi — Ujian Kampus (login Email + PIN, tanpa OAuth)
 ## A. Backend (Google Apps Script)
-1. script.google.com → Proyek baru → paste `Kode.gs`.
-2. Buat OAuth Client ID (jenis *Web application*) di Google Cloud Console → *Authorized JavaScript origins*: `https://USERNAME.github.io`. Salin Client ID.
-3. Tempel Client ID ke `CLIENT_ID` di `Kode.gs` **dan** di `js/config.js`.
-4. Jalankan fungsi `setup()` **sekali** (izinkan akses Drive/Sheets). Email Anda otomatis menjadi Admin.
-5. Deploy → Aplikasi web → Execute as: **Me**, Access: **Anyone** → salin URL `/exec` ke `GAS_URL` di `js/config.js`.
-## B. Frontend (GitHub Pages)
-1. Ekstrak ZIP. **Folder hasil ekstrak itulah folder yang di-`git init`** (di dalamnya langsung ada `index.html`). Cek dengan `dir`/`ls`.
-2. Isi `js/config.js`, lalu: `git init` → `git add .` → `git commit -m "Upload pertama"` → `git branch -M main` → `git remote add origin https://github.com/USERNAME/REPO.git` → `git push -u origin main` (password = Personal Access Token, scope *repo*).
-3. Repo → Settings → Pages → Deploy from branch → main / root → Enforce HTTPS.
-4. Update: `git add . && git commit -m "update" && git push` lalu Ctrl+Shift+R.
-## C. Pemakaian awal
-Pengaturan → unggah kop & daftarkan email dosen → Data Jadwal → Impor CSV → Buat Soal.
+1. Buka proyek Apps Script Anda → **ganti seluruh isi** `Kode.gs` dengan versi baru.
+2. Di baris paling atas ubah `PIN_ADMIN` menjadi PIN pilihan Anda (min 6 karakter).
+3. Pilih fungsi **`aturPinAdmin`** → ▶ Run (izinkan bila diminta). Log akan menampilkan email Admin. **Jangan jalankan `setup()` lagi** bila sudah pernah (membuat folder dobel). Instalasi baru: jalankan `setup()` sekali saja, PIN Admin ikut tersimpan.
+4. Deploy → Manage deployments → ikon pensil → Version: **New version** → Deploy (Execute as: Me, Access: Anyone). URL `/exec` tidak berubah.
+## B. Frontend (GitHub → Vercel/GitHub Pages)
+1. Salin semua isi ZIP ke folder proyek **kecuali `js/config.js`** bila sudah terisi (hanya butuh `GAS_URL`). Instalasi baru: isi `GAS_URL` di `js/config.js`.
+2. Dari folder yang langsung berisi `index.html`: `git add .` → `git commit -m "login email pin"` → `git push`.
+3. Buka situs, Ctrl+Shift+R.
+## C. Pemakaian
+- Admin: login dengan email Admin + PIN_ADMIN.
+- Dosen: Pengaturan → Daftar Email Dosen → isi email, nama, PIN → Tambah. Beri tahu dosen email dan PIN-nya. PIN bisa diganti lewat tombol Ubah PIN; akses dicabut lewat Nonaktifkan.
+- Sesi berlaku ±6 jam, lalu login ulang. Setelah 5 kali salah, login dikunci 15 menit.

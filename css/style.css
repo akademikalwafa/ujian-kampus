@@ -26,3 +26,4 @@ textarea{min-height:200px;resize:vertical}.row{display:flex;gap:8px;flex-wrap:wr
 .lg{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(5,1fr);height:100%}
 #pr{display:none}@media print{body>*:not(#pr){display:none!important}#pr{display:block}.pg{page-break-after:always}@page{size:A4;margin:0}}
 @media(max-width:800px){aside{position:fixed;z-index:20;transform:translateX(-100%);transition:.2s}aside.show{transform:none}#burger{display:block}.g2{grid-template-columns:1fr}.v{padding:12px}}
+#login input{width:260px}#login .card{min-width:320px}
