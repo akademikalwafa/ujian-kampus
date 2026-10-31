@@ -32,3 +32,4 @@ textarea{min-height:200px;resize:vertical}.row{display:flex;gap:8px;flex-wrap:wr
 .idw{display:flow-root}.idt{align-content:start}.ir{line-height:1.5}.body ol,.body ul{padding-inline-start:2em;margin:.3em 0}.body p,.body div{margin:0}
 .ed{min-height:220px;max-height:440px;overflow:auto;border:1px solid var(--l);border-radius:8px;padding:8px;background:#fff}.ed:empty:before{content:attr(data-ph);color:#999}.tb{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px}.tb button,.tb select{width:auto;padding:4px 8px}
 .lg{gap:0}.lc{display:grid;place-items:center;border:1px dashed #aaa;overflow:hidden}.lb{width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-evenly;border:1px solid #333;padding:2.5mm 3.5mm;font-size:12.5px;line-height:1.35;overflow:hidden}.lb h4{margin:0;font-size:1.05em;padding:3px}.lb.ar{font-size:14px}
+.body>div,.body>p,.body li{margin:0 0 var(--ps,0)}
